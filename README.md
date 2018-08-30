@@ -46,6 +46,10 @@ We are using [Weave Flux](https://github.com/weaveworks/flux) to operate our __G
 
 The problem is ECR token expires every 12 hours, and we need to find a way to ensure that the config.json authentication token is rotated in an automated and secure way.
 
+## How to use with Weave Flux Pod?
+
+Complete the [Deployment Guide](#deployment), noting the secret name and then follow [Flux Guide](https://github.com/bzon/ecr-k8s-secret-creator/blob/master/FLUX_GUIDE.md).
+
 ## How to Deploy
 
 <!-- vim-markdown-toc GFM -->
