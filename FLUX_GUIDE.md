@@ -17,8 +17,8 @@
 apiVersion: v1
 type: Secret
 metadata:
-  name: xxxx # -secretName
-  namespace: xxxx # current pod namespace
+  name: ecr-docker-secret
+  namespace: flux
 data:
   config.json: xxxxx # base64 encoded config.json
 ```
@@ -67,6 +67,6 @@ spec:
       - name: docker-config
         secret:
           defaultMode: 420
-          secretName: flux-docker-secret
+          secretName: ecr-docker-secret
       .....
  ```
