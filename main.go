@@ -1,33 +1,44 @@
 package main
 
 import (
-	"encoding/base64"
+	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
-	"os"
+	"io/ioutil"
 	"strings"
 	"text/template"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ecr"
 
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
-func main() {
+const cfgTemplate = `{
+  "auths": {
+	 "{{ .registry }}": {
+	   "auth": "{{ .token }}"
+	 }
+  }
+}`
 
+func main() {
 	// Parse flags
 	region := flag.String("region", "", "The aws region")
-	profile := flag.String("profile", "", "The aws account id")
+	interval := flag.Int("interval", 200, "Refresh interval in seconds")
+	profile := flag.String("profile", "", "The AWS Account profile")
+	secretName := flag.String("secretName", "ecr-auth-cfg", "The name of the secret")
 	flag.Parse()
 
 	// Validate variables
 	if *region == "" {
 		panic("Region not specified")
-	}
-	if *profile == "" {
-		panic("Profile not specified")
 	}
 
 	// Start a new aws client session
@@ -36,68 +47,100 @@ func main() {
 	}))
 	svc := ecr.New(sess)
 
-	// Set the registry id using profile
-	tokenInput := &ecr.GetAuthorizationTokenInput{
-		RegistryIds: []*string{profile},
+	for {
+		// Get the ECR authorization token from AWS
+		tokenInput := &ecr.GetAuthorizationTokenInput{}
+		if *profile != "" {
+			tokenInput.RegistryIds = []*string{profile}
+		}
+		token, err := svc.GetAuthorizationToken(tokenInput)
+		if err != nil {
+			panic(err.Error())
+		}
+		if len(token.AuthorizationData) < 1 {
+			panic("token.AuthorizationData slice length is zero. " +
+				"No authorization token found.")
+		}
+
+		// Create the docker config.json in buffer
+		dockerCfg, err := createDockerCfg(token)
+
+		// Create the docker config.json as a kubernetes secret
+		applyDockerCfgSecret(dockerCfg, *secretName)
+
+		time.Sleep(time.Duration(*interval) * time.Second)
 	}
-	token, err := svc.GetAuthorizationToken(tokenInput)
-	if err != nil {
-		panic(err)
-	}
-	createDockerCfg(token)
+
 }
 
-//
-// {
-//   "auths": {
-//     "${ECR_REGISTRY}": {
-//       "auth": "${BASE64_AUTH}"
-//     }
-//   }
-// }
-const cfgTemplate = `{
-	"auths": {
-		"{{ .registry }}": {
-			"auth": "{{ .token }}"
-		}
-	}
-}`
-
-const loginCmdTemplate = `docker login -u AWS -p {{ .loginPassword }} {{ .registry }}`
-
-func createDockerCfg(ecrToken *ecr.GetAuthorizationTokenOutput) {
+func createDockerCfg(ecrToken *ecr.GetAuthorizationTokenOutput) ([]byte, error) {
 	cfgData := map[string]string{}
-
 	cfgData["registry"] = *ecrToken.AuthorizationData[0].ProxyEndpoint
 	cfgData["token"] = *ecrToken.AuthorizationData[0].AuthorizationToken
 
-	// Decode authentication to base64
-	encodedToken, err :=
-		base64.StdEncoding.DecodeString(*ecrToken.AuthorizationData[0].AuthorizationToken)
-	if err != nil {
-		panic(err)
-	}
-	// Remove the AWS: part of the token
-	cfgData["loginPassword"] = strings.SplitN(string(encodedToken), ":", 2)[1]
-
-	fmt.Println("############################################")
-	fmt.Println("This is the docker config.json file\n")
+	// Put the config template output in a buffer
 	t := template.Must(template.New("").Parse(cfgTemplate))
-	if err := t.Execute(os.Stdout, cfgData); err != nil {
-		panic(err)
-	}
-	fmt.Println("############################################")
-	fmt.Println("############################################")
-	fmt.Println("This is the docker login command\n")
-	t2 := template.Must(template.New("").Parse(loginCmdTemplate))
-	if err := t2.Execute(os.Stdout, cfgData); err != nil {
-		panic(err)
+	cfgBuffer := bytes.NewBufferString("")
+
+	if err := t.Execute(cfgBuffer, cfgData); err != nil {
+		return nil, err
 	}
 
+	cfgInByte, err := ioutil.ReadAll(cfgBuffer)
+	if err != nil {
+		return nil, err
+	}
+
+	return cfgInByte, nil
 }
 
-func createKubernetesSecret(cfg []byte) error {
-	secret := &v1.Secret{}
-	secret.Data["config.json"] = []byte(cfg)
-	return nil
+func applyDockerCfgSecret(cfg []byte, secretName string) {
+	secret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: secretName,
+		},
+		Data: map[string][]byte{
+			"config.json": cfg,
+		},
+	}
+
+	// Print secret manifest for troubleshooting :)
+	cfgInByte, err := json.MarshalIndent(secret, "", " ")
+	if err != nil {
+		panic(err.Error())
+	}
+	fmt.Println("Creating secret..")
+	fmt.Println(string(cfgInByte))
+
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		panic(err.Error())
+	}
+
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	// Get service acccount namespace
+	namespace, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+	if err != nil {
+		panic(err.Error())
+	}
+
+	// Create the secret
+	secretClient := clientset.CoreV1().Secrets(string(namespace))
+	result, err := secretClient.Update(secret)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			result, err = secretClient.Create(secret)
+			if err != nil {
+				panic(err.Error())
+			}
+		} else {
+			panic(err.Error())
+		}
+	}
+
+	fmt.Printf("Created/Updated a secret %q.\n", result.GetObjectMeta().GetName())
 }

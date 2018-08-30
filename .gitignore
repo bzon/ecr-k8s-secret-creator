@@ -1,0 +1,3 @@
+examples/
+ecr-k8s-secret-creator
+*.json
