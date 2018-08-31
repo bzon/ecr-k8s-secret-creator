@@ -1,8 +1,20 @@
-# Create a Kubernetes Secret from an ECR Token
+# ECR K8S Secret Creator
 
-This application creates a docker config.json for ECR as a kubernetes secret.
+This application creates a docker config.json (as a Kubernetes secret) that can authenticate docker clients to Amazon ECR. It is using the [ECR GetAuthorizationToken API](https://docs.aws.amazon.com/AmazonECR/latest/APIReference/API_GetAuthorizationToken.html) to fetch the token from an Amazon Region.
 
-In a nutshell, it's like a running cron job that does `aws ecr get-login` that creates a docker config.json file out of it inside a kubernetes secret.
+A docker config.json file looks like this, which may be found in `$HOME/.docker/config.json` after using `docker login`.
+
+```json
+{
+  "auths": {
+	 "https://${AWS_PROFILE}.dkr.ecr.us-east-1.amazonaws.com": {
+	   "auth": "....."
+	 }
+  }
+}
+```
+
+This application is like a running cron job that does `aws ecr get-login`, creates a docker config.json file, then create Kubernetes secret out of it.
 
 ## How does it work?
 
