@@ -23,7 +23,7 @@ data:
   config.json: xxxxx # base64 encoded config.json
 ```
 
-* Use the Kubernetes secret as a docker volume in the Flux pod. Use `kubectl edit deploy flux -n flux` after deploying flux using Helm.
+* After deploying Flux using Helm, edit the Flux deployment via `kubectl edit deploy flux` and use the created Kubernetes secret as a docker volume in the Flux pod.
 
 ```yaml
 apiVersion: extensions/v1beta1
