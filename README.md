@@ -1,3 +1,5 @@
+[![Go Report Card](https://goreportcard.com/badge/github.com/bzon/ecr-k8s-secret-creator)](https://goreportcard.com/report/github.com/bzon/ecr-k8s-secret-creator)
+
 # ECR K8S Secret Creator
 
 This application creates a docker config.json (as a Kubernetes secret) that can authenticate docker clients to Amazon ECR. It is using the [ECR GetAuthorizationToken API](https://docs.aws.amazon.com/AmazonECR/latest/APIReference/API_GetAuthorizationToken.html) to fetch the token from an Amazon Region.
