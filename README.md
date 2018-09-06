@@ -1,4 +1,4 @@
-[![Go Report Card](https://goreportcard.com/badge/github.com/bzon/ecr-k8s-secret-creator)](https://goreportcard.com/report/github.com/bzon/ecr-k8s-secret-creator)
+![Docker Pulls](https://img.shields.io/docker/pulls/bzon/ecr-k8s-secret-creator.svg)[![Go Report Card](https://goreportcard.com/badge/github.com/bzon/ecr-k8s-secret-creator)](https://goreportcard.com/report/github.com/bzon/ecr-k8s-secret-creator)
 
 # ECR K8S Secret Creator
 
@@ -203,10 +203,10 @@ spec:
           resources:
             requests:
               cpu: 10m
-              memory: 64Mi
+              memory: 32Mi
             limits:
-              cpu: 100m
-              memory: 128Mi
+              cpu: 50m
+              memory: 64Mi
 ```
 
 ### Check the ECR Secret Creator Pod's logs
