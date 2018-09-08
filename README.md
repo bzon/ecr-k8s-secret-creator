@@ -221,7 +221,7 @@ Creating secret..
   "creationTimestamp": null
  },
  "data": {
-  "config.json": "${BASE64_ENCODED_DOCKER_AUTH_CONFIG"
+  "config.json": "${BASE64_ENCODED_DOCKER_AUTH_CONFIG}"
  }
 }
 Created a secret "ecr-docker-secret".
