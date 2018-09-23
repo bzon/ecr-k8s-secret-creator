@@ -18,6 +18,8 @@ A docker config.json file looks like this, which may be found in `$HOME/.docker/
 
 This application is like a running cron job that does `aws ecr get-login`, creates a docker config.json file, then create Kubernetes secret out of it.
 
+**WARNING!!** If you need to run this in production environments, please build your own Docker image by following the [How To Build this Project](#how-to-build-this-project) step.
+
 ## How does it work?
 
 * Deploy this application as a Pod in the namespace to create the Secret.
