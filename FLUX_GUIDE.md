@@ -1,5 +1,7 @@
+## Using with Weave Flux
 
-* Create the docker config.json from ECR token. __ecr-k8s-secret-creator already do this for you__
+
+* Create the docker config.json from ECR token. __ecr-k8s-secret-creator already do this for you__.
 
 ```json
 {
@@ -11,7 +13,7 @@
 }
 ```
 
-* Create the Kubernetes secret from the config.json file. __ecr-k8s-secret-creator already do this for you__
+* Create the Kubernetes secret from the config.json file. __ecr-k8s-secret-creator already do this for you__.
 
 ```yaml
 apiVersion: v1
@@ -23,50 +25,37 @@ data:
   config.json: xxxxx # base64 encoded config.json
 ```
 
-* After deploying Flux using Helm, edit the Flux deployment via `kubectl edit deploy flux` and use the created Kubernetes secret as a docker volume in the Flux pod.
+* After deploying Weave Flux with Helm, you must edit the Weave Flux deployment via `kubectl edit deploy flux` and use the created Kubernetes secret as a docker volume in the Flux pod.
 
 ```yaml
 apiVersion: extensions/v1beta1
 kind: Deployment
 .....
 spec:
-  progressDeadlineSeconds: 600
-  replicas: 1
-  revisionHistoryLimit: 10
-  selector:
-    matchLabels:
-      app: flux
-      release: flux
-  strategy:
-    rollingUpdate:
-      maxSurge: 25%
-      maxUnavailable: 25%
-    type: RollingUpdate
-  template:
-    metadata:
-      creationTimestamp: null
-      labels:
-        app: flux
-        release: flux
+  ...
     spec:
       containers:
       - args:
         .....
-        # Use the docker-config mount
+	#
+	# STEP 3 - Use the config.json inside the volumeMount (/etc/fluxd/docker)
+	#
         - --docker-config=/etc/fluxd/docker/config.json
-        image: quay.io/weaveworks/flux:1.5.0
         .....
-        # Add a volume mount for docker secret
         volumeMounts:
-        .....
+	#
+	# STEP 2 - Create a volumeMount (/etc/fluxd/docker) for the docker-config volume 
+	#
         - mountPath: /etc/fluxd/docker
           name: docker-config
-      .....
-      # Mount the docker secret as a volume
+  	  .....
       volumes:
+      #
+      # STEP 1 - Create a volume named docker-config using your ecr docker secret
+      #
       - name: docker-config
         secret:
           defaultMode: 420
           secretName: ecr-docker-secret
-      .....
+	.....
  ```
