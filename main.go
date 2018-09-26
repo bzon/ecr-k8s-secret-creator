@@ -31,7 +31,7 @@ const cfgTemplate = `{
 func main() {
 	// Parse flags
 	region := flag.String("region", "", "The aws region")
-	interval := flag.Int("interval", 200, "Refresh interval in seconds")
+	interval := flag.Int("interval", 1200, "Refresh interval in seconds")
 	profile := flag.String("profile", "", "The AWS Account profile")
 	secretName := flag.String("secretName", "ecr-auth-cfg", "The name of the secret")
 	flag.Parse()
