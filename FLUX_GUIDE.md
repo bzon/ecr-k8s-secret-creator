@@ -37,18 +37,18 @@ spec:
       containers:
       - args:
         .....
-	#
-	# STEP 3 - Use the config.json inside the volumeMount (/etc/fluxd/docker)
-	#
+        #
+        # STEP 3 - Use the config.json inside the volumeMount (/etc/fluxd/docker)
+        #
         - --docker-config=/etc/fluxd/docker/config.json
         .....
         volumeMounts:
-	#
-	# STEP 2 - Create a volumeMount (/etc/fluxd/docker) for the docker-config volume 
-	#
+        #
+        # STEP 2 - Create a volumeMount (/etc/fluxd/docker) for the docker-config volume 
+        #
         - mountPath: /etc/fluxd/docker
           name: docker-config
-  	  .....
+          .....
       volumes:
       #
       # STEP 1 - Create a volume named docker-config using your ecr docker secret
@@ -57,5 +57,5 @@ spec:
         secret:
           defaultMode: 420
           secretName: ecr-docker-secret
-	.....
+        .....
  ```
