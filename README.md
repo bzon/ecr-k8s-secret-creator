@@ -242,5 +242,5 @@ kubectl get secrets ecr-docker-secret -n ${SECRET_NAMESPACE} -o json | jq '.data
 * Download the project `go get github.com/bzon/ecr-k8s-secret-creator`
 * Go to `$GOPATH/github.com/bzon/ecr-k8s-secret-creator`
 * Change the docker repository in the `Makefile` to your own docker repository
-* Run `make build`
+* Run `make docker-build`
 * Run `make push`
