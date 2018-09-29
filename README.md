@@ -70,10 +70,11 @@ Complete the [Deployment Guide](#deployment), noting the secret name and then fo
 
 <!-- vim-markdown-toc GFM -->
 
-* [IAM Role Requirement](#iam-role-requirement)
-* [Deployment](#deployment)
-* [Check the ECR Secret Creator Pod's logs](#check-the-ecr-secret-creator-pods-logs)
-* [Check the Created Secret](#check-the-created-secret)
+  * [IAM Role Requirement](#iam-role-requirement)
+  * [Deployment](#deployment)
+  * [Check the ECR Secret Creator Pod's logs](#check-the-ecr-secret-creator-pods-logs)
+  * [Check the Created Secret](#check-the-created-secret)
+* [How to Build this Project](#how-to-build-this-project)
 
 <!-- vim-markdown-toc -->
 

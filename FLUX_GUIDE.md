@@ -25,7 +25,7 @@ data:
   config.json: xxxxx # base64 encoded config.json
 ```
 
-* After deploying Weave Flux with Helm, you must edit the Weave Flux deployment via `kubectl edit deploy flux` and use the created Kubernetes secret as a docker volume in the Flux pod.
+* After deploying Weave Flux with Helm, you must edit the Weave Flux deployment via `kubectl edit deploy flux` and use the created Kubernetes secret as a docker volume in the Flux pod. Please see the [examples](./examples) directory too.
 
 ```yaml
 apiVersion: extensions/v1beta1

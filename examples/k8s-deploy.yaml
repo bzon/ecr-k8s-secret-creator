@@ -1,0 +1,33 @@
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: ecr-k8s-secret-creator
+  namespace: flux
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ecr-k8s-secret-creator
+  template:
+    metadata:
+      labels:
+        app: ecr-k8s-secret-creator
+      # if using kube2iam
+      # annotations:
+      # iam.amazonaws.com/role: arn:aws:iam::${AWS_PROFILE}:role/${GET_ECR_AUTH_IAM_ROLE}
+    spec:
+      serviceAccount: ecr-k8s-secret-creator
+      containers:
+        - image: bzon/ecr-k8s-secret-creator:latest
+          name: ecr-k8s-secret-creator
+          args:
+            - "-secretName=ecr-docker-secret"
+            - "-region=us-east-1"
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 50m
+              memory: 64Mi
