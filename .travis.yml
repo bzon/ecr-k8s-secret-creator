@@ -1,0 +1,27 @@
+language: go
+
+branches:
+  only:
+  - master
+  - /^v.*$/
+
+go:
+  - "1.11.x"
+
+sudo: false
+
+services:
+  - docker
+
+install:
+  - go get github.com/golang/lint/golint
+  - golint -set_exit_status ./...
+  - make dep
+
+script:
+  - make coverage
+  - bash <(curl -s https://codecov.io/bash) # Set CODECOV_TOKEN in your environment variables.
+  - echo $DOCKER_PASSWORD | docker login --password-stdin -u $DOCKER_USER
+  - make docker-build
+  - make push
+

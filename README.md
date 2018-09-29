@@ -1,4 +1,6 @@
 ![Docker Pulls](https://img.shields.io/docker/pulls/bzon/ecr-k8s-secret-creator.svg)[![Go Report Card](https://goreportcard.com/badge/github.com/bzon/ecr-k8s-secret-creator)](https://goreportcard.com/report/github.com/bzon/ecr-k8s-secret-creator)
+[![codecov](https://codecov.io/gh/bzon/ecr-k8s-secret-creator/branch/master/graph/badge.svg)](https://codecov.io/gh/bzon/ecr-k8s-secret-creator)
+[![Build Status](https://travis-ci.org/bzon/ecr-k8s-secret-creator.svg?branch=master)](https://travis-ci.org/bzon/ecr-k8s-secret-creator)
 
 # ECR K8S Secret Creator
 
@@ -214,20 +216,9 @@ spec:
 
 ### Check the ECR Secret Creator Pod's logs
 
-```bash
-kubectl get secrets -n ${SECRET_NAMESPACE}
-
-Creating secret..
-{
- "metadata": {
-  "name": "${SECRET_NAME}",
-  "creationTimestamp": null
- },
- "data": {
-  "config.json": "${BASE64_ENCODED_DOCKER_AUTH_CONFIG}"
- }
-}
-Created a secret "ecr-docker-secret".
+```json
+{"level":"info","msg":"creating kubernetes secret","time":"2018-09-29T15:51:52+01:00"}
+{"level":"info","msg":"updated kubernetes secret: ecr-docker-secret","time":"2018-09-29T15:51:52+01:00"}
 ```
 
 ### Check the Created Secret
