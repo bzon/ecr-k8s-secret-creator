@@ -2,9 +2,8 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
+	"errors"
 	"flag"
-	"fmt"
 	"io/ioutil"
 	"strings"
 	"text/template"
@@ -13,12 +12,15 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ecr"
+	log "github.com/sirupsen/logrus"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
+
+const appVersion = "0.1.0"
 
 const cfgTemplate = `{
   "auths": {
@@ -28,15 +30,23 @@ const cfgTemplate = `{
   }
 }`
 
+func init() {
+	log.SetFormatter(&log.JSONFormatter{})
+}
+
 func main() {
-	// Parse flags
+	log.Infof("appVersion: %s", appVersion)
+
+	// Flags
 	region := flag.String("region", "", "The aws region")
 	interval := flag.Int("interval", 1200, "Refresh interval in seconds")
 	profile := flag.String("profile", "", "The AWS Account profile")
 	secretName := flag.String("secretName", "ecr-auth-cfg", "The name of the secret")
 	flag.Parse()
+	log.Infof("Flags: region=%s, interval=%d, profile=%s, secretName=%s",
+		*region, *interval, *profile, *secretName)
 
-	// Validate variables
+	// Validate important variables
 	if *region == "" {
 		panic("Region not specified")
 	}
@@ -57,23 +67,41 @@ func main() {
 		if err != nil {
 			panic(err.Error())
 		}
-		if len(token.AuthorizationData) < 1 {
-			panic("token.AuthorizationData slice length is zero. " +
-				"No authorization token found.")
-		}
 
 		// Create the docker config.json in buffer
 		dockerCfg, err := createDockerCfg(token)
 
-		// Create the docker config.json as a kubernetes secret
-		applyDockerCfgSecret(dockerCfg, *secretName)
+		// Get current namespace
+		namespace, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+		if err != nil {
+			panic(err.Error())
+		}
 
+		// Create the docker config.json as a kubernetes secret
+		kconfig, err := rest.InClusterConfig()
+		if err != nil {
+			panic(err.Error())
+		}
+		clientSet, err := kubernetes.NewForConfig(kconfig)
+		if err != nil {
+			panic(err.Error())
+		}
+		kclient := &kubernetesAPI{client: clientSet}
+		err = kclient.applyDockerCfgSecret(dockerCfg, *secretName, string(namespace))
+		if err != nil {
+			panic(err.Error())
+		}
+
+		// sleep interval
 		time.Sleep(time.Duration(*interval) * time.Second)
 	}
 
 }
 
 func createDockerCfg(ecrToken *ecr.GetAuthorizationTokenOutput) ([]byte, error) {
+	if len(ecrToken.AuthorizationData) < 1 {
+		return nil, errors.New("authorization data should have at least 1 auth data")
+	}
 	cfgData := map[string]string{}
 	cfgData["registry"] = *ecrToken.AuthorizationData[0].ProxyEndpoint
 	cfgData["token"] = *ecrToken.AuthorizationData[0].AuthorizationToken
@@ -94,7 +122,11 @@ func createDockerCfg(ecrToken *ecr.GetAuthorizationTokenOutput) ([]byte, error) 
 	return cfgInByte, nil
 }
 
-func applyDockerCfgSecret(cfg []byte, secretName string) {
+type kubernetesAPI struct {
+	client kubernetes.Interface
+}
+
+func (k *kubernetesAPI) applyDockerCfgSecret(cfg []byte, secretName, namespace string) error {
 	secret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: secretName,
@@ -104,43 +136,22 @@ func applyDockerCfgSecret(cfg []byte, secretName string) {
 		},
 	}
 
-	// Print secret manifest for troubleshooting :)
-	cfgInByte, err := json.MarshalIndent(secret, "", " ")
-	if err != nil {
-		panic(err.Error())
-	}
-	fmt.Println("Creating secret..")
-	fmt.Println(string(cfgInByte))
-
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		panic(err.Error())
-	}
-
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	// Get service acccount namespace
-	namespace, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
-	if err != nil {
-		panic(err.Error())
-	}
-
-	// Create the secret
-	secretClient := clientset.CoreV1().Secrets(string(namespace))
+	log.Infoln("creating kubernetes secret")
+	secretClient := k.client.CoreV1().Secrets(namespace)
 	result, err := secretClient.Update(secret)
+	actionTaken := "updated"
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			result, err = secretClient.Create(secret)
 			if err != nil {
-				panic(err.Error())
+				return err
 			}
+			actionTaken = "created"
 		} else {
-			panic(err.Error())
+			return err
 		}
 	}
 
-	fmt.Printf("Created/Updated a secret %q.\n", result.GetObjectMeta().GetName())
+	log.Infof("%s kubernetes secret: %s", actionTaken, result.GetObjectMeta().GetName())
+	return nil
 }
