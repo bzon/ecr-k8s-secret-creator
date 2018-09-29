@@ -217,8 +217,10 @@ spec:
 ### Check the ECR Secret Creator Pod's logs
 
 ```json
-{"level":"info","msg":"creating kubernetes secret","time":"2018-09-29T15:51:52+01:00"}
-{"level":"info","msg":"updated kubernetes secret: ecr-docker-secret","time":"2018-09-29T15:51:52+01:00"}
+{"level":"info","msg":"appVersion: 0.1.0","time":"2018-09-29T16:48:17Z"}
+{"level":"info","msg":"Flags: region=us-east-1, interval=1200, profile=, secretName=flux-docker-secret","time":"2018-09-29T16:48:17Z"}
+{"level":"info","msg":"creating kubernetes secret","time":"2018-09-29T16:48:19Z"}
+{"level":"info","msg":"updated kubernetes secret: flux-docker-secret","time":"2018-09-29T16:48:19Z"}
 ```
 
 ### Check the Created Secret
