@@ -26,8 +26,8 @@ spec:
             - "-region=us-east-1"
           resources:
             requests:
-              cpu: 10m
-              memory: 32Mi
+              cpu: 5m
+              memory: 16Mi
             limits:
-              cpu: 50m
-              memory: 64Mi
+              cpu: 20m
+              memory: 32Mi
