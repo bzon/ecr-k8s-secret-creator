@@ -34,7 +34,7 @@ func TestCreateDockerCfg(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := createDockerCfg(tc.tokenOutput)
+			_, err := createDockerCfg(tc.tokenOutput, false)
 			if err != nil {
 				if tc.success {
 					t.Fatal(err)
