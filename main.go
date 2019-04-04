@@ -42,6 +42,7 @@ func main() {
 	interval := flag.Int("interval", 1200, "Refresh interval in seconds")
 	profile := flag.String("profile", "", "The AWS Account profile")
 	secretName := flag.String("secretName", "ecr-auth-cfg", "The name of the secret")
+	stripScheme := flag.Bool("stripScheme", false, "Remove the scheme from the registry URL")
 	flag.Parse()
 	log.Infof("Flags: region=%s, interval=%d, profile=%s, secretName=%s",
 		*region, *interval, *profile, *secretName)
@@ -69,7 +70,7 @@ func main() {
 		}
 
 		// Create the docker config.json in buffer
-		dockerCfg, err := createDockerCfg(token)
+		dockerCfg, err := createDockerCfg(token, *stripScheme)
 
 		// Get current namespace
 		namespace, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
@@ -98,12 +99,19 @@ func main() {
 
 }
 
-func createDockerCfg(ecrToken *ecr.GetAuthorizationTokenOutput) ([]byte, error) {
+func createDockerCfg(ecrToken *ecr.GetAuthorizationTokenOutput, stripScheme bool) ([]byte, error) {
 	if len(ecrToken.AuthorizationData) < 1 {
 		return nil, errors.New("authorization data should have at least 1 auth data")
 	}
 	cfgData := map[string]string{}
-	cfgData["registry"] = *ecrToken.AuthorizationData[0].ProxyEndpoint
+	log.Infoln(*ecrToken.AuthorizationData[0].ProxyEndpoint)
+	if stripScheme {
+		splits := strings.Split(*ecrToken.AuthorizationData[0].ProxyEndpoint, "://")
+		cfgData["registry"] = splits[1]
+	} else {
+		cfgData["registry"] = *ecrToken.AuthorizationData[0].ProxyEndpoint
+	}
+	log.Infoln(cfgData["registry"])
 	cfgData["token"] = *ecrToken.AuthorizationData[0].AuthorizationToken
 
 	// Put the config template output in a buffer
