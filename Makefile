@@ -10,7 +10,7 @@ linux-build: dep
 docker-build: linux-build
 	docker build -t $(IMAGE_REPO):$(VERSION) .
 
-push:
+push: docker-build
 	docker push $(IMAGE_REPO):$(VERSION)
 
 dep:

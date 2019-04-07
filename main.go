@@ -42,9 +42,10 @@ func main() {
 	interval := flag.Int("interval", 1200, "Refresh interval in seconds")
 	profile := flag.String("profile", "", "The AWS Account profile")
 	secretName := flag.String("secretName", "ecr-auth-cfg", "The name of the secret")
+	secretType := flag.String("secretType", "Opaque", "The secret type to store")
 	flag.Parse()
-	log.Infof("Flags: region=%s, interval=%d, profile=%s, secretName=%s",
-		*region, *interval, *profile, *secretName)
+	log.Infof("Flags: region=%s, interval=%d, profile=%s, secretName=%s, *secretType=%s",
+		*region, *interval, *profile, *secretName, *secretType)
 
 	// Validate important variables
 	if *region == "" {
@@ -87,7 +88,7 @@ func main() {
 			panic(err.Error())
 		}
 		kclient := &kubernetesAPI{client: clientSet}
-		err = kclient.applyDockerCfgSecret(dockerCfg, *secretName, string(namespace))
+		err = kclient.applyDockerCfgSecret(dockerCfg, *secretName, string(namespace), v1.SecretType(*secretType))
 		if err != nil {
 			panic(err.Error())
 		}
@@ -126,14 +127,32 @@ type kubernetesAPI struct {
 	client kubernetes.Interface
 }
 
-func (k *kubernetesAPI) applyDockerCfgSecret(cfg []byte, secretName, namespace string) error {
+func (k *kubernetesAPI) applyDockerCfgSecret(cfg []byte, secretName, namespace string, kind v1.SecretType) error {
+	if (kind == "") {
+		kind = v1.SecretTypeOpaque
+	}
+
+	var data map[string][]byte
+	switch kind {
+		case v1.SecretTypeDockerConfigJson:
+			data = map[string][]byte{
+				string(v1.DockerConfigJsonKey): cfg,
+			}
+		case v1.SecretTypeDockercfg:
+			data = map[string][]byte{
+				string(v1.DockerConfigKey): cfg,
+			}
+		default:
+			data = map[string][]byte{
+				"config.json": cfg,
+			}
+	}
 	secret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: secretName,
 		},
-		Data: map[string][]byte{
-			"config.json": cfg,
-		},
+		Data: data,
+		Type: kind,
 	}
 
 	log.Infoln("creating kubernetes secret")
@@ -147,6 +166,12 @@ func (k *kubernetesAPI) applyDockerCfgSecret(cfg []byte, secretName, namespace s
 				return err
 			}
 			actionTaken = "created"
+		// } else if strings.Contains(err.Error(), "cannot update resource") {
+		// 	result, err = secretClient.Create(secret)
+		// 	if err != nil {
+		// 		return err
+		// 	}
+		// 	actionTaken = "created"
 		} else {
 			return err
 		}
