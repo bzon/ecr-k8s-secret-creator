@@ -166,12 +166,6 @@ func (k *kubernetesAPI) applyDockerCfgSecret(cfg []byte, secretName, namespace s
 				return err
 			}
 			actionTaken = "created"
-		// } else if strings.Contains(err.Error(), "cannot update resource") {
-		// 	result, err = secretClient.Create(secret)
-		// 	if err != nil {
-		// 		return err
-		// 	}
-		// 	actionTaken = "created"
 		} else {
 			return err
 		}
