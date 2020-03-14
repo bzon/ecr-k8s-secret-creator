@@ -5,6 +5,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ecr"
+	v1 "k8s.io/api/core/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
 )
 
@@ -47,7 +48,7 @@ func TestCreateDockerCfg(t *testing.T) {
 func TestApplyDockerCfgSecret(t *testing.T) {
 	kclient := &kubernetesAPI{client: testclient.NewSimpleClientset()}
 	err := kclient.applyDockerCfgSecret(
-		[]byte("test"), "docker-secret", "test-namespace")
+		[]byte("test"), "docker-secret", "test-namespace", v1.SecretTypeOpaque)
 	if err != nil {
 		t.Fatal(err)
 	}

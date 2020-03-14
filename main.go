@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"strings"
 	"text/template"
@@ -34,6 +35,19 @@ func init() {
 	log.SetFormatter(&log.JSONFormatter{})
 }
 
+func parseSecretType(s string) (v1.SecretType, error) {
+	switch v1.SecretType(s) {
+	case v1.SecretTypeOpaque:
+		return v1.SecretTypeOpaque, nil
+	case v1.SecretTypeDockerConfigJson:
+		return v1.SecretTypeDockerConfigJson, nil
+	case v1.SecretTypeDockercfg:
+		return v1.SecretTypeOpaque, nil
+	default:
+		return "", fmt.Errorf("unmatched secret type: %s", s)
+	}
+}
+
 func main() {
 	log.Infof("appVersion: %s", appVersion)
 
@@ -42,9 +56,17 @@ func main() {
 	interval := flag.Int("interval", 1200, "Refresh interval in seconds")
 	profile := flag.String("profile", "", "The AWS Account profile")
 	secretName := flag.String("secretName", "ecr-auth-cfg", "The name of the secret")
+	secretTypeName := flag.String("secretType", "Opaque", fmt.Sprintf("The secret type, available options: (%s | %s | %s)",
+		v1.SecretTypeOpaque, v1.SecretTypeDockerConfigJson, v1.SecretTypeDockercfg))
 	flag.Parse()
-	log.Infof("Flags: region=%s, interval=%d, profile=%s, secretName=%s",
-		*region, *interval, *profile, *secretName)
+
+	log.Infof("Flags: region=%s, interval=%d, profile=%s, secretName=%s, secretType=%s",
+		*region, *interval, *profile, *secretName, *secretTypeName)
+
+	secretType, err := parseSecretType(*secretTypeName)
+	if err != nil {
+		panic(err)
+	}
 
 	// Validate important variables
 	if *region == "" {
@@ -87,7 +109,7 @@ func main() {
 			panic(err.Error())
 		}
 		kclient := &kubernetesAPI{client: clientSet}
-		err = kclient.applyDockerCfgSecret(dockerCfg, *secretName, string(namespace))
+		err = kclient.applyDockerCfgSecret(dockerCfg, *secretName, string(namespace), secretType)
 		if err != nil {
 			panic(err.Error())
 		}
@@ -126,14 +148,29 @@ type kubernetesAPI struct {
 	client kubernetes.Interface
 }
 
-func (k *kubernetesAPI) applyDockerCfgSecret(cfg []byte, secretName, namespace string) error {
+func (k *kubernetesAPI) applyDockerCfgSecret(cfg []byte, secretName, namespace string, kind v1.SecretType) error {
+	var data map[string][]byte
+	switch kind {
+	case v1.SecretTypeDockerConfigJson:
+		data = map[string][]byte{
+			string(v1.DockerConfigJsonKey): cfg,
+		}
+	case v1.SecretTypeDockercfg:
+		data = map[string][]byte{
+			string(v1.DockerConfigKey): cfg,
+		}
+	default:
+		data = map[string][]byte{
+			"config.json": cfg,
+		}
+	}
+
 	secret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: secretName,
 		},
-		Data: map[string][]byte{
-			"config.json": cfg,
-		},
+		Data: data,
+		Type: kind,
 	}
 
 	log.Infoln("creating kubernetes secret")
