@@ -35,19 +35,6 @@ func init() {
 	log.SetFormatter(&log.JSONFormatter{})
 }
 
-func parseSecretType(s string) (v1.SecretType, error) {
-	switch v1.SecretType(s) {
-	case v1.SecretTypeOpaque:
-		return v1.SecretTypeOpaque, nil
-	case v1.SecretTypeDockerConfigJson:
-		return v1.SecretTypeDockerConfigJson, nil
-	case v1.SecretTypeDockercfg:
-		return v1.SecretTypeOpaque, nil
-	default:
-		return "", fmt.Errorf("unmatched secret type: %s", s)
-	}
-}
-
 func main() {
 	log.Infof("appVersion: %s", appVersion)
 
@@ -56,7 +43,7 @@ func main() {
 	interval := flag.Int("interval", 1200, "Refresh interval in seconds")
 	profile := flag.String("profile", "", "The AWS Account profile")
 	secretName := flag.String("secretName", "ecr-auth-cfg", "The name of the secret")
-	secretTypeName := flag.String("secretType", "Opaque", fmt.Sprintf("The secret type, available options: (%s | %s | %s)",
+	secretTypeName := flag.String("secretType", "Opaque", fmt.Sprintf("The secret type, available options: (%s|%s|%s)",
 		v1.SecretTypeOpaque, v1.SecretTypeDockerConfigJson, v1.SecretTypeDockercfg))
 	flag.Parse()
 
@@ -65,7 +52,7 @@ func main() {
 
 	secretType, err := parseSecretType(*secretTypeName)
 	if err != nil {
-		panic(err)
+		panic(err.Error())
 	}
 
 	// Validate important variables
@@ -191,4 +178,17 @@ func (k *kubernetesAPI) applyDockerCfgSecret(cfg []byte, secretName, namespace s
 
 	log.Infof("%s kubernetes secret: %s", actionTaken, result.GetObjectMeta().GetName())
 	return nil
+}
+
+func parseSecretType(s string) (v1.SecretType, error) {
+	switch v1.SecretType(s) {
+	case v1.SecretTypeOpaque:
+		return v1.SecretTypeOpaque, nil
+	case v1.SecretTypeDockerConfigJson:
+		return v1.SecretTypeDockerConfigJson, nil
+	case v1.SecretTypeDockercfg:
+		return v1.SecretTypeOpaque, nil
+	default:
+		return "", fmt.Errorf("unmatched secret type: %s", s)
+	}
 }

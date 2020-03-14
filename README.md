@@ -53,6 +53,18 @@ This application is like a running cron job that does `aws ecr get-login`, creat
       config.json: xxxxx # base64 encoded
     ```
 
+* You can specify secret type by using `-secretType` flag. This can be useful, when running kubernetes nodes outside of AWS, as in this scenario kubelet does not have pull access to ECR. Specifying  `-secretType=kubernetes.io/dockerconfigjson` will automate creation of a secret, that can be used in manifests requiring `imagePullSecrets`
+    ```yaml
+    apiVersion: v1
+    data:
+      .dockerconfigjson: xxxxx
+    kind: Secret
+    type: kubernetes.io/dockerconfigjson
+    metadata:
+      name: xxxx
+      namespace: xxxx
+    ```
+
 * It repeats the process according to the specified `-interval` flag. Refreshing the config.json file content in the Secret over the time specified.
 
 * You can now use this kubernetes secret and __mount__ it to any pod that has a docker client that authenticates to ECR.
