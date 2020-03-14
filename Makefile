@@ -24,5 +24,5 @@ coverage:
 	go test -cpu=1 -v ./... -failfast -coverprofile=coverage.txt -covermode=count
 
 lint:
-	go get -u golang.org/x/lint/golint
+	GO111MODULE=off go get -u golang.org/x/lint/golint
 	golint -set_exit_status ./...
