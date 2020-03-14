@@ -187,7 +187,7 @@ func parseSecretType(s string) (v1.SecretType, error) {
 	case v1.SecretTypeDockerConfigJson:
 		return v1.SecretTypeDockerConfigJson, nil
 	case v1.SecretTypeDockercfg:
-		return v1.SecretTypeOpaque, nil
+		return v1.SecretTypeDockercfg, nil
 	default:
 		return "", fmt.Errorf("unmatched secret type: %s", s)
 	}
