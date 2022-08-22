@@ -2,6 +2,10 @@
 [![codecov](https://codecov.io/gh/bzon/ecr-k8s-secret-creator/branch/master/graph/badge.svg)](https://codecov.io/gh/bzon/ecr-k8s-secret-creator)
 [![Build Status](https://travis-ci.org/bzon/ecr-k8s-secret-creator.svg?branch=master)](https://travis-ci.org/bzon/ecr-k8s-secret-creator)
 
+# NO MAINTENANCE NOTICE 
+
+I don't maintain this repository anymore. Feel free to fork if needed.
+
 # ECR K8S Secret Creator
 
 This application creates a docker config.json (as a Kubernetes secret) that can authenticate docker clients to Amazon ECR. It is using the [ECR GetAuthorizationToken API](https://docs.aws.amazon.com/AmazonECR/latest/APIReference/API_GetAuthorizationToken.html) to fetch the token from an Amazon Region.
